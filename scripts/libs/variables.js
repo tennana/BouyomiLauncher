@@ -13,9 +13,11 @@ const SERVICES = {
 	"002_YouTubeLiveOnBroadcaster": {
 		expression: /https?:\/\/studio\.youtube\.com\/channel\/([^/]+)\/livestreaming\/dashboard(\?.*)?/
 	},
-
 	"003_TwitCasting": {
 		expression: /https?:\/\/twitcasting\.tv\/([^/]+)\/broadcaster.+/
+	},
+	"004_Ccfolia": {
+		expression: /https?:\/\/ccfolia\.com\/rooms\/([a-zA-Z0-9]+)/
 	}
 };
 

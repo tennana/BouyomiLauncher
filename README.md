@@ -26,6 +26,7 @@ Make sure to install [a WebSocket Plugin for Bouyomi-chan](https://github.com/xz
 * ### YouTube Live on Broadcaster (https://studio.youtube.com/channel/{:id}/livestreaming/dashboard)
   ※ Available on latest-UI
 
+* ### Ccfolia (https://ccfolia.com/rooms/)
 
 ## LICENSE
 [MIT License](/LICENSE)

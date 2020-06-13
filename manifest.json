@@ -15,7 +15,8 @@
 
 		"*://www.youtube.com/live_chat*",
 		"*://studio.youtube.com/channel/*/livestreaming/dashboard?*",
-		"*://twitcasting.tv/*/broadcastertool*"
+		"*://twitcasting.tv/*/broadcastertool*",
+		"https://ccfolia.com/rooms/*"
 	],
 
 	"background": {
@@ -41,7 +42,8 @@
 			"matches": [
 				"*://www.youtube.com/live_chat*",
 				"*://studio.youtube.com/channel/*/livestreaming/dashboard?*",
-				"*://twitcasting.tv/*/broadcastertool*"
+				"*://twitcasting.tv/*/broadcastertool*",
+				"https://ccfolia.com/rooms/*"
 			],
 
 			"all_frames": true,
@@ -60,12 +62,17 @@
 		},
 
 		{
-			"js": ["scripts/content/services/TwitCasting.js"],
+			"js": [
+				"scripts/content/services/TwitCasting.js"
+			],
 			"matches": [
 				"*://twitcasting.tv/*/broadcastertool*"
+			]
+		},{
+			"js": ["scripts/content/services/Ccfolia.js"],
+			"matches": [
+				"https://ccfolia.com/rooms/*"
 			],
-
-			"all_frames": true,
 			"run_at": "document_idle"
 		}
 	],

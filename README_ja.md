@@ -26,6 +26,7 @@
 * ### YouTube Live (配信側) (https://studio.youtube.com/channel/{:id}/livestreaming/dashboard)
   ※ 現行のUIで有効
 
+* ### Ccfolia (https://ccfolia.com/rooms/)
 
 ## ライセンス
 [MIT License](/LICENSE)
