@@ -1,55 +1,65 @@
 /* global STORAGE_KEYS */
 /* global storage */
+
 /* global bouyomi */
 
 
-
 class Ccfolia {
-	static get SELECTORS () {
-		return {
-			ChatList: ".MuiList-root > div:first-child > div:first-child > div:first-child",
-		
-			Chat_ViewerMessage: ".MuiTypography-subtitle2",
-			Chat_TextMessage: ".MuiTypography-body2",
-		};
-	}
+    static get SELECTORS() {
+        return {
+            ChatListRoot: ".MuiList-root",
+            ChatList: ".MuiList-root > div:first-child > div:first-child > div:first-child",
+
+            Chat_ViewerMessage: ".MuiTypography-subtitle2",
+            Chat_TextMessage: ".MuiTypography-body2",
+        };
+    }
 }
 
 
+chrome.runtime.onMessage.addListener(({serviceId}, sender, resolve) => {
+    const observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+            if (mutation.type !== "childList" || !mutation.addedNodes || mutation.addedNodes.length === 0) return;
+            let root = mutation.target;
+            for(let i = 0; i < 3;i++){
+                if (root.tagName.toLowerCase() !== "div"){
+                    return;
+                }
+                root = root.parentNode;
+            }
+            if (root.className.indexOf("MuiList-root") === -1) {
+                return;
+            }
 
-chrome.runtime.onMessage.addListener(({ serviceId }, sender, resolve) => {
-	const observer = new MutationObserver(mutations => {
-		for (const mutation of mutations) {
-			if (mutation.type !== "childList") return;
+            for (const chat of mutation.addedNodes) {
+                if (!["div"].includes(chat.tagName.toLowerCase()) || chat.nextSibling) {
+                    continue;
+                }
+                const scrollDiv = chat.parentElement.parentElement;
+                // speak new message only
+                if (scrollDiv.scrollHeight - scrollDiv.clientHeight !== scrollDiv.scrollTop) {
+                    continue;
+                }
+                const author = chat.querySelector(Ccfolia.SELECTORS.Chat_ViewerMessage).firstChild.textContent;
+                const message = chat.querySelector(Ccfolia.SELECTORS.Chat_TextMessage).textContent;
+                if (!author || !message) return;
+                storage.get(STORAGE_KEYS.getServiceKey(serviceId)).then(value => {
+                    if (value) bouyomi.speak(`${author} さん。${message}`);
+                });
+            }
+        }
+    });
 
-			for (const chat of mutation.addedNodes) {
-				if (![ "div" ].includes(chat.tagName.toLowerCase()) || chat.nextSibling) {
-					continue;
-				}
-				const scrollDiv = chat.parentElement.parentElement;
-				// speak new message only
-				if(scrollDiv.scrollHeight - scrollDiv.clientHeight !== scrollDiv.scrollTop){
-					continue;
-				}
-				const author = chat.querySelector(Ccfolia.SELECTORS.Chat_ViewerMessage).firstChild.textContent;
-				const message = chat.querySelector(Ccfolia.SELECTORS.Chat_TextMessage).textContent;
-				if(!author || !message) return;
-				storage.get(STORAGE_KEYS.getServiceKey(serviceId)).then(value => {
-					if (value) bouyomi.speak(`${author} さん。${message}`);
-				});
-			}
-		}
-	});
-	
-	const looper = setInterval(() => {
-		const chatList = document.querySelector(Ccfolia.SELECTORS.ChatList);
+    const looper = setInterval(() => {
+        const chatListRoot = document.querySelector(Ccfolia.SELECTORS.ChatListRoot);
 
-		if (chatList) {
-			clearInterval(looper);
-			observer.observe(chatList, { childList: true });
+        if (chatListRoot) {
+            clearInterval(looper);
+            observer.observe(chatListRoot, {childList: true, subtree: true});
 
-			resolve({ serviceId });
-		}
-	}, 1000);
-	return true;
+            resolve({serviceId});
+        }
+    }, 1000);
+    return true;
 });
