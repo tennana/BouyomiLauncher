@@ -33,12 +33,12 @@ chrome.runtime.onMessage.addListener(({serviceId}, sender, resolve) => {
             }
 
             for (const chat of mutation.addedNodes) {
-                if (!["div"].includes(chat.tagName.toLowerCase()) || chat.nextSibling) {
+                if (!["div"].includes(chat.tagName.toLowerCase()) || chat.nextSibling || !chat.parentElement) {
                     continue;
                 }
                 const scrollDiv = chat.parentElement.parentElement;
                 // speak new message only
-                if (scrollDiv.scrollHeight - scrollDiv.clientHeight !== scrollDiv.scrollTop) {
+                if (Math.abs(scrollDiv.scrollHeight - scrollDiv.clientHeight - scrollDiv.scrollTop) > 15) {
                     continue;
                 }
                 const author = chat.querySelector(Ccfolia.SELECTORS.Chat_ViewerMessage).firstChild.textContent;
