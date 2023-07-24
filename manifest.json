@@ -17,7 +17,8 @@
 		"*://studio.youtube.com/channel/*/livestreaming*",
 		"*://studio.youtube.com/video/*/livestreaming",
 		"*://twitcasting.tv/*/broadcaster*",
-		"https://ccfolia.com/rooms/*"
+		"https://ccfolia.com/rooms/*",
+		"*://*.chatx2.whocares.jp/"
 	],
 
 	"background": {
@@ -45,7 +46,8 @@
 				"*://studio.youtube.com/channel/*/livestreaming*",
 				"*://studio.youtube.com/video/*/livestreaming",
 				"*://twitcasting.tv/*/broadcaster*",
-				"https://ccfolia.com/rooms/*"
+				"https://ccfolia.com/rooms/*",
+				"*://*.chatx2.whocares.jp/"
 			],
 
 			"all_frames": true,
@@ -75,6 +77,12 @@
 			"js": ["scripts/content/services/Ccfolia.js"],
 			"matches": [
 				"https://ccfolia.com/rooms/*"
+			],
+			"run_at": "document_idle"
+		},{
+			"js": ["scripts/content/services/whocares.js"],
+			"matches": [
+				"*://*.chatx2.whocares.jp/"
 			],
 			"run_at": "document_idle"
 		}

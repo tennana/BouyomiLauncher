@@ -23,6 +23,9 @@ const SERVICES = {
 	},
 	"004_Ccfolia": {
 		expression: /https?:\/\/ccfolia\.com\/rooms\/([a-zA-Z0-9]+)/
+	},
+	"005_Whocares": {
+		expression: /https?:\/\/(.+?)\.chatx2\.whocares.jp/
 	}
 };
 

@@ -105,7 +105,7 @@ const Bouyomi = (() => {
 		}
 		
 		/** @param {string} message */
-		async speak (message) { await this.command(Client.CommandType.Speak, { message }) }
+		async speak (message, type) { await this.command(Client.CommandType.Speak, { message, type: type || 0 }) }
 		async pause () { await this.command(Client.CommandType.Pause) }
 		async resume () { await this.command(Client.CommandType.Resume) }
 		async skip () { await this.command(Client.CommandType.Skip) }

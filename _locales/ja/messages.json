@@ -15,6 +15,7 @@
 	"services_002_YouTubeLiveOnBroadcaster": { "message": "YouTube Live (配信側)" },
 	"services_003_TwitCasting": { "message": "TwitCasting (ツイキャス)" },
 	"services_004_Ccfolia": { "message": "ココフォリア" },
+	"services_005_Whocares": { "message": "Whocares" },
 
 
 	"view_Config_title": { "message": "設定" },
