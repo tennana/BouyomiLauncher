@@ -22,9 +22,18 @@
 
 
 ## 実装済みのサービス
-* ### YouTube Live (閲覧側) (https://www.youtube.com/live_chat)
-* ### YouTube Live (配信側) (https://studio.youtube.com/channel/{:id}/livestreaming/dashboard)
-  ※ 現行のUIで有効
+* ### YouTube Live (閲覧側)
+  - https://www.youtube.com/live_chat
+  - https://www.youtube.com/live_chat_replay
+  
+* ### YouTube Live (配信側)
+  - https://studio.youtube.com/live_chat
+  - https://studio.youtube.com/channel/{:id}/livestreaming
+  - https://studio.youtube.com/video/{:id}/livestreaming
+  
+* ### TwitCasting (ツイキャス) 
+  - https://twitcasting.tv/{:id}/broadcaster
+  - https://twitcasting.tv/{:id}/broadcastertool
 
 * ### Ccfolia (https://ccfolia.com/rooms/)
 

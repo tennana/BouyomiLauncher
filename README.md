@@ -22,9 +22,18 @@ Make sure to install [a WebSocket Plugin for Bouyomi-chan](https://github.com/xz
 
 
 ## Implemented Services
-* ### YouTube Live on Viewer (https://www.youtube.com/live_chat)
-* ### YouTube Live on Broadcaster (https://studio.youtube.com/channel/{:id}/livestreaming/dashboard)
-  ※ Available on latest-UI
+* ### YouTube Live on Viewer
+  - https://www.youtube.com/live_chat
+  - https://www.youtube.com/live_chat_replay
+  
+* ### YouTube Live on Broadcaster
+  - https://studio.youtube.com/live_chat
+  - https://studio.youtube.com/channel/{:id}/livestreaming
+  - https://studio.youtube.com/video/{:id}/livestreaming
+  
+* ### TwitCasting
+  - https://twitcasting.tv/{:id}/broadcaster
+  - https://twitcasting.tv/{:id}/broadcastertool
 
 * ### Ccfolia (https://ccfolia.com/rooms/)
 
