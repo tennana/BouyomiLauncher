@@ -23,7 +23,7 @@ chrome.runtime.onMessage.addListener(({serviceId}, sender, resolve) => {
     }
     const observer = new MutationObserver(mutations => {
         for (const mutation of mutations) {
-            if (mutation.type !== "childList" || !mutation.addedNodes || mutation.addedNodes.length === 0) return;
+            if (mutation.type !== "childList" || !mutation.addedNodes || mutation.addedNodes.length === 0 || mutation.addedNodes.length > 5) return;
 
             for (const chat of mutation.addedNodes) {
                 // speak new message only
