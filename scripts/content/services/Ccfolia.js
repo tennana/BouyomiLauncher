@@ -32,7 +32,7 @@ chrome.runtime.onMessage.addListener(({serviceId}, sender, resolve) => {
                     continue;
                 }
                 const message = (chat.querySelector(Ccfolia.SELECTORS.Chat_TextMessage) || {}).textContent;
-		const authorDom = chat.querySelector(Ccfolia.SELECTORS.Chat_ViewerMessage);
+		            const authorDom = chat.querySelector(Ccfolia.SELECTORS.Chat_ViewerMessage);
                 const author = authorDom ? authorDom.firstChild.textContent : '';
                 if (!author || !message) return;
                 storage.get(STORAGE_KEYS.getServiceKey(serviceId)).then(value => {

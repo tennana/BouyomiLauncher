@@ -34,10 +34,28 @@ chrome.webNavigation.onCompleted.addListener(async details => {
         serviceId: service[0]
       };
 
-      chrome.tabs.sendMessage(details.tabId, message, { frameId: details.frameId });
+      chrome.tabs.sendMessage(details.tabId, message, {frameId: details.frameId});
       break;
     }
   }
+
+  chrome.runtime.onMessage.addListener(({commandType, port, ...props}, sender, resolve) => {
+    if (!port) {
+      return false;
+    }
+    if (commandType === "BouyomiGetVoice") {
+      fetch("http://localhost:" + port + "/GetVoiceList").then(res => res.json()).then(resolve);
+      return true;
+    }
+    const queryString = Object.entries(props)
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+        .join('&');
+    fetch("http://localhost:" + port + "/" + commandType + "?" + queryString, {
+      method: "GET",
+      cache: "no-cache"
+    }).then(res => res.json()).then(resolve);
+    return true;
+  });
 }, (async () => {
   const filter = {};
   filter.url = [];
@@ -63,13 +81,13 @@ chrome.webNavigation.onCompleted.addListener(async details => {
   for (const service of Object.values(SERVICES)) {
     if (!service.expression) {
       for (const expr of service.expressions) {
-        filter.url.push({ urlMatches: expr.source });
+        filter.url.push({urlMatches: expr.source});
       }
 
       continue;
     }
 
-    filter.url.push({ urlMatches: service.expression.source });
+    filter.url.push({urlMatches: service.expression.source});
   }
 
   return filter;
