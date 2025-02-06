@@ -63,32 +63,12 @@ const Bouyomi = (() => {
 	 * @typedef {0x0001 | 0x0010 | 0x0020 | 0x0030} BouyomiClient.Config.CommandType 0x0001=読み上げ / 0x0010=ポーズ / 0x0020=再開 / 0x0030=スキップ
 	 */
 	Bouyomi.Client = class Client {
-		static get DELIMITER () { return "<bouyomi>" }
-		static get SOCKET_URL () { return "ws://localhost:50002" }
-
 		static get CommandType () {
-			return { Speak: 0x0001, Pause: 0x0010, Resume: 0x0020, Skip: 0x0030 };
+			return { Speak: 'talk', Pause: 'pause', Resume: 'resume', Skip: 'skip' };
 		}
 
 		/** @return {BouyomiClient.Config} */
-		static get defaultConfig () { return { speed: -1, pitch: -1, volume: -1, type: 0 } }
-
-
-		/**
-		 * @param {object} commandObj
-		 * @return {string}
-		 */
-		static formatCommand (commandObj) {
-			return [
-				commandObj.commandType,
-				commandObj.speed,
-				commandObj.pitch,
-				commandObj.volume,
-				commandObj.type,
-				commandObj.message
-			].join(this.DELIMITER);
-		}
-		
+		static get defaultConfig () { return { speed: -1, pitch: -1, volume: -1, type: 0, port: 50080 } }
 
 		/** @param {BouyomiClient.Config} [config = {}] */
 		constructor (config = {}) {
@@ -100,27 +80,17 @@ const Bouyomi = (() => {
 		 * @param {object} [fields = {}]
 		 */
 		async command (commandType, fields = {}) {
-			const bouyomi = await this._createSocket();
-			bouyomi.send(Client.formatCommand(Object.assign({ commandType, message: commandType }, this.config, fields)));
+			chrome.runtime.sendMessage(Object.assign({ commandType, time: new Date().getTime() }, this.config, fields));
 		}
 		
-		/** @param {string} message */
-		async speak (message, type) { await this.command(Client.CommandType.Speak, { message, type: type || 0 }) }
+		/** @param {string} text
+		 * @param config
+		 */
+		async speak (text, config) { await this.command(Client.CommandType.Speak, { text, ...config }) }
 		async pause () { await this.command(Client.CommandType.Pause) }
 		async resume () { await this.command(Client.CommandType.Resume) }
 		async skip () { await this.command(Client.CommandType.Skip) }
-
-
-		/** @return { Promise<WebSocket> } */
-		_createSocket () {
-			return new Promise((resolve, reject) => {
-				const bouyomi = new WebSocket(Client.SOCKET_URL);
-				bouyomi.addEventListener("error", () => reject(new Error("Couldn't connect to Bouyomi-chan's socket server")));
-				bouyomi.addEventListener("open", () => resolve(bouyomi));
-			});
-		}
 	};
-
 
 	/**
 	 * @namespace BouyomiNativeClient

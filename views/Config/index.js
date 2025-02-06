@@ -11,6 +11,7 @@ const SELECTORS = {
 	Form_BouyomiType: "#form_bouyomiType",
 	Form_BouyomiConfig: "#form_bouyomiConfig",
 	Form_BouyomiConfig_Indicator: "#form_bouyomiConfig_indicator",
+	Form_BouyomiConfig_HTTP_PORT: "#form_bouyomi_http_port",
 	Form_NativeBouyomiConfig: "#form_nativeBouyomiConfig",
 	Form_NativeBouyomiConfig_Input: "*[Data-Config-Key]",
 	Form_NativeBouyomiConfig_Input__SimpleParam: ".ui.input *[Data-Config-Key]",
@@ -122,6 +123,17 @@ I18n.autoApply()
 				this.value = voiceName;
 			});
 	})
+		.then(async () => { // About Bouyomi
+			const { BOUYOMI_CONFIG } = STORAGE_KEYS;
+			const stored = bouyomi._client.config = await storage.get(BOUYOMI_CONFIG) || (await storage.set(BOUYOMI_CONFIG, Bouyomi.Client.defaultConfig))[BOUYOMI_CONFIG];
+
+			let portElm = document.querySelector(SELECTORS.Form_BouyomiConfig_HTTP_PORT);
+			portElm.value = stored.port;
+			portElm.addEventListener("change", () => {
+				const port = portElm.value;
+				storage.set(BOUYOMI_CONFIG, Object.assign(stored, { port }));
+			});
+	})
 	.then(async () => { // About Services
 		const formServices = document.querySelector(SELECTORS.Form_Services);
 		for (const service of Object.keys(SERVICES)) {
@@ -157,11 +169,11 @@ I18n.autoApply()
 		bouyomi.init();
 		
 		document.querySelector(SELECTORS.Form_BouyomiTester_PlayButton).addEventListener("click", () => {
-			bouyomi.speak(document.querySelector(SELECTORS.Form_BouyomiTester_Content).value);
+			bouyomi.speak(document.querySelector(SELECTORS.Form_BouyomiTester_Content).value, {port: document.querySelector(SELECTORS.Form_BouyomiConfig_HTTP_PORT).value});
 		});
 
 		document.querySelector(SELECTORS.Form_BouyomiTester_StopButton).addEventListener("click", () => {
-			
+			bouyomi.skip();
 		});
 	})
 	.then(() => { // About Initializing Components
