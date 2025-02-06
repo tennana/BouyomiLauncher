@@ -39,10 +39,18 @@ chrome.webNavigation.onCompleted.addListener(async details => {
     }
   }
 
-  chrome.runtime.onMessage.addListener(({commandType, port, ...props}, sender, resolve) => {
+  let lastTime = 0;
+  chrome.runtime.onMessage.addListener(({commandType, port, time, ...props}, sender, resolve) => {
+    if(lastTime >= time) {
+      return true;
+    }
+    if( sender && sender.tab && sender.tab.id !== details.tabId) {
+      return false;
+    }
     if (!port) {
       return false;
     }
+    lastTime = time;
     if (commandType === "BouyomiGetVoice") {
       fetch("http://localhost:" + port + "/GetVoiceList").then(res => res.json()).then(resolve);
       return true;

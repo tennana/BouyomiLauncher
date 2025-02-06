@@ -33,10 +33,12 @@ const Bouyomi = (() => {
 		init () {
 			storage.on("change", store => {
 				const clientTypeChanges = store[STORAGE_KEYS.BOUYOMI_TYPE];
-				const configChanges = store[STORAGE_KEYS.NATIVE_BOUYOMI_CONFIG];
+				const nativeConfigChanges = store[STORAGE_KEYS.NATIVE_BOUYOMI_CONFIG];
+				const configChanges = store[STORAGE_KEYS.BOUYOMI_CONFIG];
 
 				if (clientTypeChanges) return this.clientType = clientTypeChanges.newValue;
-				if (configChanges) return this._nativeClient.config = configChanges.newValue;
+				if (configChanges) return this._client.config = configChanges.newValue;
+				if (nativeConfigChanges) return this._nativeClient.config = nativeConfigChanges.newValue;
 			});
 		}
 

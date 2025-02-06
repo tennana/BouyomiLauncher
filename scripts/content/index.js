@@ -7,6 +7,7 @@
 (async () => {
 	bouyomi.clientType = await storage.get(STORAGE_KEYS.BOUYOMI_TYPE);
 	bouyomi._nativeClient.config = await storage.get(STORAGE_KEYS.NATIVE_BOUYOMI_CONFIG);
+	bouyomi._client.config = await storage.get(STORAGE_KEYS.BOUYOMI_CONFIG);
 
 	bouyomi.init();
 })();
