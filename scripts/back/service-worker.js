@@ -47,10 +47,10 @@ chrome.webNavigation.onCompleted.addListener(async details => {
       fetch("http://localhost:" + port + "/GetVoiceList").then(res => res.json()).then(resolve);
       return true;
     }
-    const queryString = Object.entries(props)
+    const queryString = commandType !== "talk" ? '' : '?' + Object.entries(props)
         .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
         .join('&');
-    fetch("http://localhost:" + port + "/" + commandType + "?" + queryString, {
+    fetch("http://localhost:" + port + "/" + commandType + queryString, {
       method: "GET",
       cache: "no-cache"
     }).then(res => res.json()).then(resolve);

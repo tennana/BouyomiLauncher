@@ -80,11 +80,13 @@ const Bouyomi = (() => {
 		 * @param {object} [fields = {}]
 		 */
 		async command (commandType, fields = {}) {
-			chrome.runtime.sendMessage(Object.assign({ commandType }, this.config, fields));
+			chrome.runtime.sendMessage(Object.assign({ commandType, time: new Date().getTime() }, this.config, fields));
 		}
 		
-		/** @param {string} text */
-		async speak (text) { await this.command(Client.CommandType.Speak, { text }) }
+		/** @param {string} text
+		 * @param config
+		 */
+		async speak (text, config) { await this.command(Client.CommandType.Speak, { text, ...config }) }
 		async pause () { await this.command(Client.CommandType.Pause) }
 		async resume () { await this.command(Client.CommandType.Resume) }
 		async skip () { await this.command(Client.CommandType.Skip) }
