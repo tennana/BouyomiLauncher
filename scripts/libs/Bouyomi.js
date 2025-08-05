@@ -74,7 +74,243 @@ const Bouyomi = (() => {
 
 		/** @param {BouyomiClient.Config} [config = {}] */
 		constructor (config = {}) {
-			this.config = Object.assign({}, Client.defaultConfig, config);
+			this.config = Object.assign(Object.create(Client.defaultConfig), config);
+			this.port = null;
+			this.isConnected = false;
+			this.reconnectAttempts = 0;
+			this.maxReconnectAttempts = 5;
+			this.reconnectDelay = 1000; // 1秒
+			this.isReconnecting = false;
+			this.reconnectTimer = null;
+			this.lastCommandTime = 0;
+			this.commandQueue = [];
+			this.isProcessingQueue = false; // キュー処理中のフラグ
+			this.serviceWorkerCheckInterval = null;
+			this.initConnection();
+			this.startServiceWorkerMonitoring();
+		}
+
+		/**
+		 * Service Workerの監視を開始
+		 */
+		startServiceWorkerMonitoring() {
+			// 30秒ごとにService Workerの状態を確認
+			this.serviceWorkerCheckInterval = setInterval(async () => {
+				if (this.isConnected) {
+					const swActive = await this.checkServiceWorkerStatus();
+					if (!swActive) {
+						console.warn('BouyomiClient: Service Workerが非アクティブです。接続をリセットします。');
+						this.isConnected = false;
+						if (this.port) {
+							this.port.disconnect();
+							this.port = null;
+						}
+						this.scheduleReconnect();
+					}
+				}
+			}, 30000); // 30秒間隔
+		}
+
+		/**
+		 * Service Workerの監視を停止
+		 */
+		stopServiceWorkerMonitoring() {
+			if (this.serviceWorkerCheckInterval) {
+				clearInterval(this.serviceWorkerCheckInterval);
+				this.serviceWorkerCheckInterval = null;
+			}
+		}
+
+		/**
+		 * 接続を初期化
+		 */
+		initConnection() {
+			if (this.isReconnecting) {
+				return; // 既に再接続中の場合は何もしない
+			}
+
+			try {
+				console.log('BouyomiClient: 接続を初期化中...');
+				this.port = chrome.runtime.connect({ name: 'bouyomi-client' });
+				this.isConnected = true;
+				this.isReconnecting = false;
+
+				this.port.onDisconnect.addListener(() => {
+					this.isConnected = false;
+					console.log('BouyomiClient: 接続が切断されました');
+					
+					// エラーが発生した場合のみ再接続を試行
+					if (chrome.runtime.lastError) {
+						console.log('BouyomiClient: エラーが発生しました:', chrome.runtime.lastError.message);
+						this.scheduleReconnect();
+					}
+				});
+
+				this.port.onMessage.addListener((response) => {
+					// レスポンス処理（必要に応じて）
+					console.log('BouyomiClient: レスポンス受信', response);
+					
+					// 接続確認メッセージの処理
+					if (response.type === 'connection_established') {
+						console.log('BouyomiClient: 接続が確立されました', response.connectionId);
+						this.isConnected = true;
+						this.reconnectAttempts = 0;
+						this.isReconnecting = false;
+						
+						// 接続が確立されたらキューに溜まったコマンドを実行
+						this.processCommandQueue();
+					}
+				});
+
+			} catch (error) {
+				console.error('BouyomiClient: 接続初期化エラー', error);
+				this.isConnected = false;
+				this.scheduleReconnect();
+			}
+		}
+
+		/**
+		 * Service Workerの状態を確認
+		 */
+		async checkServiceWorkerStatus() {
+			try {
+				// Service Workerの状態を確認
+				const response = await chrome.runtime.sendMessage({ 
+					type: 'ping', 
+					timestamp: Date.now() 
+				});
+				console.log('BouyomiClient: Service Worker応答あり', response);
+				return true;
+			} catch (error) {
+				console.error('BouyomiClient: Service Worker応答なし', error);
+				return false;
+			}
+		}
+
+		/**
+		 * 再接続をスケジュール
+		 */
+		async scheduleReconnect() {
+			if (this.isReconnecting) {
+				return; // 既に再接続中の場合は何もしない
+			}
+
+			if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+				console.error('BouyomiClient: 最大再接続回数に達しました');
+				this.isReconnecting = false;
+				return;
+			}
+
+			this.isReconnecting = true;
+			this.reconnectAttempts++;
+			
+			// Service Workerの状態を確認
+			const swActive = await this.checkServiceWorkerStatus();
+			console.log(`BouyomiClient: Service Worker状態 - アクティブ: ${swActive}`);
+			
+			// 指数バックオフで遅延時間を増加
+			const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+			console.log(`BouyomiClient: ${delay}ms後に再接続を試行します (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
+			// 既存のタイマーをクリア
+			if (this.reconnectTimer) {
+				clearTimeout(this.reconnectTimer);
+			}
+
+			this.reconnectTimer = setTimeout(async () => {
+				this.isReconnecting = false;
+				
+				// 再接続前にService Workerの状態を再確認
+				const swStillActive = await this.checkServiceWorkerStatus();
+				if (!swStillActive) {
+					console.error('BouyomiClient: Service Workerが非アクティブです。再接続を中止します。');
+					return;
+				}
+				
+				this.initConnection();
+			}, delay);
+		}
+
+		/**
+		 * 接続状態を確認し、必要に応じて再接続
+		 */
+		ensureConnection() {
+			if (!this.isConnected || !this.port) {
+				console.log('BouyomiClient: 接続が確立されていません。再接続を試行します');
+				this.initConnection();
+			}
+		}
+
+		/**
+		 * コマンドをキューに追加
+		 */
+		queueCommand(commandType, fields = {}) {
+			const command = { commandType, fields, timestamp: Date.now() };
+			this.commandQueue.push(command);
+			
+			// キューが長すぎる場合は古いコマンドを削除
+			if (this.commandQueue.length > 10) {
+				this.commandQueue.shift();
+			}
+		}
+
+		/**
+		 * キューに溜まったコマンドを実行
+		 */
+		async processCommandQueue() {
+			if (!this.isConnected || !this.port) {
+				return;
+			}
+
+			// 処理中のフラグを設定
+			if (this.isProcessingQueue) {
+				return;
+			}
+			this.isProcessingQueue = true;
+
+			try {
+				while (this.commandQueue.length > 0) {
+					const command = this.commandQueue.shift();
+					try {
+						await this.sendCommand(command.commandType, command.fields);
+						// 各コマンドの間に少し間隔を空ける
+						await new Promise(resolve => setTimeout(resolve, 50));
+					} catch (error) {
+						console.error('BouyomiClient: キューコマンド実行エラー', error);
+						// エラーが発生した場合はコマンドを再キュー
+						this.commandQueue.unshift(command);
+						break;
+					}
+				}
+			} finally {
+				this.isProcessingQueue = false;
+			}
+		}
+
+		/**
+		 * コマンドを送信
+		 */
+		async sendCommand(commandType, fields = {}) {
+			if (!this.isConnected || !this.port) {
+				throw new Error('BouyomiClient: 接続が確立されていません');
+			}
+
+			try {
+				const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+				const message = Object.assign({ 
+					commandType, 
+					time: new Date().getTime(),
+					messageId
+				}, this.config, fields);
+				
+				this.port.postMessage(message);
+				this.lastCommandTime = Date.now();
+			} catch (error) {
+				console.error('BouyomiClient: メッセージ送信エラー', error);
+				this.isConnected = false;
+				this.scheduleReconnect();
+				throw error;
+			}
 		}
 
 		/**
@@ -82,7 +318,22 @@ const Bouyomi = (() => {
 		 * @param {object} [fields = {}]
 		 */
 		async command (commandType, fields = {}) {
-			chrome.runtime.sendMessage(Object.assign({ commandType, time: new Date().getTime() }, this.config, fields));
+			this.ensureConnection();
+
+			if (!this.isConnected || !this.port) {
+				// 接続できない場合はコマンドをキューに追加
+				this.queueCommand(commandType, fields);
+				return;
+			}
+
+			try {
+				await this.sendCommand(commandType, fields);
+				// キュー処理は接続確認時に行うため、ここでは実行しない
+			} catch (error) {
+				// エラーが発生した場合はコマンドをキューに追加
+				this.queueCommand(commandType, fields);
+				throw error;
+			}
 		}
 		
 		/** @param {string} text
@@ -136,7 +387,7 @@ const Bouyomi = (() => {
 		set config (value) {
 			const { type } = value;
 
-			this._config = Object.assign({}, NativeClient.defaultConfig, value, (() => {
+			this._config = Object.assign(Object.create(NativeClient.defaultConfig), value, (() => {
 				if (!NativeClient.isLoaded) return {};
 
 				return {
@@ -194,10 +445,10 @@ const Bouyomi = (() => {
 			for (let i = 0; i < segments.length; i++) {
 				const utterance = (() => {
 					const utterance = new SpeechSynthesisUtterance(segments[i]);
-					utterance.rate = config.speed,
-					utterance.pitch = config.pitch,
-					utterance.volume = config.volume,
-					utterance.voice = config.type;
+					utterance.rate = config.speed != undefined ? config.speed : utterance.rate,
+					utterance.pitch = config.pitch != undefined ? config.pitch : utterance.pitch,
+					utterance.volume = config.volume != undefined ? config.volume : utterance.volume,
+					utterance.voice = config.type != undefined ? config.type : utterance.voice;
 
 					utterance.addEventListener("end", e => {
 						const queIndex = this.ques.findIndex(que => que === e.utterance);

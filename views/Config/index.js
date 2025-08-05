@@ -81,7 +81,7 @@ I18n.autoApply()
 					if (!isValid) return;
 					await storage.set(NATIVE_BOUYOMI_CONFIG,
 						Object.assign(config, {
-							[this.dataset.configKey]: this.value
+							[this.dataset.configKey]: this.type === "number" ? Number(this.value) : this.value
 						})
 					);
 
@@ -93,7 +93,8 @@ I18n.autoApply()
 			.find(SELECTORS.Form_NativeBouyomiConfig_Input__SimpleParam)
 			.each(function () {
 				const { configKey } = this.dataset;
-				this.value = stored[configKey] || Bouyomi.NativeClient.defaultConfig[configKey];
+				const value = stored[configKey];
+				this.value = value !== undefined && value !== null && value !== "" ? value : Bouyomi.NativeClient.defaultConfig[configKey];
 			});
 		
 
