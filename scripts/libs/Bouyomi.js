@@ -74,7 +74,7 @@ const Bouyomi = (() => {
 
 		/** @param {BouyomiClient.Config} [config = {}] */
 		constructor (config = {}) {
-			this.config = Object.assign({}, Client.defaultConfig, config);
+			this.config = Object.assign(Object.create(Client.defaultConfig), config);
 		}
 
 		/**
@@ -136,7 +136,7 @@ const Bouyomi = (() => {
 		set config (value) {
 			const { type } = value;
 
-			this._config = Object.assign({}, NativeClient.defaultConfig, value, (() => {
+			this._config = Object.assign(Object.create(NativeClient.defaultConfig), value, (() => {
 				if (!NativeClient.isLoaded) return {};
 
 				return {
@@ -194,10 +194,10 @@ const Bouyomi = (() => {
 			for (let i = 0; i < segments.length; i++) {
 				const utterance = (() => {
 					const utterance = new SpeechSynthesisUtterance(segments[i]);
-					utterance.rate = config.speed,
-					utterance.pitch = config.pitch,
-					utterance.volume = config.volume,
-					utterance.voice = config.type;
+					utterance.rate = config.speed != undefined ? config.speed : utterance.rate,
+					utterance.pitch = config.pitch != undefined ? config.pitch : utterance.pitch,
+					utterance.volume = config.volume != undefined ? config.volume : utterance.volume,
+					utterance.voice = config.type != undefined ? config.type : utterance.voice;
 
 					utterance.addEventListener("end", e => {
 						const queIndex = this.ques.findIndex(que => que === e.utterance);
