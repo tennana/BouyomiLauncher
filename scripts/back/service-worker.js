@@ -124,27 +124,39 @@ chrome.webNavigation.onCompleted.addListener(async details => {
         
         lastTime = time;
         
+        // メッセージ内容に基づいてロック名を生成（同じ内容は同じロック名）
+        const messageContent = JSON.stringify({ commandType, props });
+        const lockName = `bouyomi-${commandType}-${simpleHash(messageContent)}`;
+        
+        // Web Locks APIを使用して排他制御（同じ内容のメッセージのみ排他）
         try {
-          let response;
-          
-          if (commandType === "BouyomiGetVoice") {
-            response = await fetch("http://localhost:" + bouyomiPort + "/GetVoiceList");
-          } else {
-            const queryString = commandType !== "talk" ? '' : '?' + Object.entries(props)
-                .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-                .join('&');
-            response = await fetch("http://localhost:" + bouyomiPort + "/" + commandType + queryString, {
-              method: "GET",
-              cache: "no-cache"
-            });
-          }
-          
-          const result = await response.json();
-          port.postMessage({ success: true, data: result });
-          
-        } catch (error) {
-          console.error('Service Worker: Bouyomi通信エラー', error);
-          port.postMessage({ error: error.message });
+          await navigator.locks.request(lockName, { mode: 'exclusive' }, async () => {
+            try {
+              let response;
+              
+              if (commandType === "BouyomiGetVoice") {
+                response = await fetch("http://localhost:" + bouyomiPort + "/GetVoiceList");
+              } else {
+                const queryString = commandType !== "talk" ? '' : '?' + Object.entries(props)
+                    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+                    .join('&');
+                response = await fetch("http://localhost:" + bouyomiPort + "/" + commandType + queryString, {
+                  method: "GET",
+                  cache: "no-cache"
+                });
+              }
+              
+              const result = await response.json();
+              port.postMessage({ success: true, data: result });
+              
+            } catch (error) {
+              console.error('Service Worker: Bouyomi通信エラー', error);
+              port.postMessage({ error: error.message });
+            }
+          });
+        } catch (lockError) {
+          console.log('Service Worker: ロック取得失敗 - 同じ内容のメッセージが処理中', lockError);
+          port.postMessage({ error: '同じ内容の処理が実行中のため実行できませんでした' });
         }
       });
       
@@ -181,17 +193,35 @@ chrome.webNavigation.onCompleted.addListener(async details => {
       return false;
     }
     lastTime = time;
-    if (commandType === "BouyomiGetVoice") {
-      fetch("http://localhost:" + port + "/GetVoiceList").then(res => res.json()).then(resolve);
-      return true;
-    }
-    const queryString = commandType !== "talk" ? '' : '?' + Object.entries(props)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-    fetch("http://localhost:" + port + "/" + commandType + queryString, {
-      method: "GET",
-      cache: "no-cache"
-    }).then(res => res.json()).then(resolve);
+    
+    // メッセージ内容に基づいてロック名を生成（同じ内容は同じロック名）
+    const messageContent = JSON.stringify({ commandType, props });
+    const lockName = `bouyomi-${commandType}-${simpleHash(messageContent)}`;
+    
+    // Web Locks APIを使用して排他制御（同じ内容のメッセージのみ排他）
+    (async () => {
+      try {
+        await navigator.locks.request(lockName, { mode: 'exclusive' }, async () => {
+          if (commandType === "BouyomiGetVoice") {
+            const result = await fetch("http://localhost:" + port + "/GetVoiceList").then(res => res.json());
+            resolve(result);
+          } else {
+            const queryString = commandType !== "talk" ? '' : '?' + Object.entries(props)
+                .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+                .join('&');
+            const result = await fetch("http://localhost:" + port + "/" + commandType + queryString, {
+              method: "GET",
+              cache: "no-cache"
+            }).then(res => res.json());
+            resolve(result);
+          }
+        });
+      } catch (lockError) {
+        console.log('Service Worker: ロック取得失敗 - 同じ内容のメッセージが処理中', lockError);
+        resolve({ error: '同じ内容の処理が実行中のため実行できませんでした' });
+      }
+    })();
+    
     return true;
   });
 }, (async () => {
@@ -205,8 +235,8 @@ chrome.webNavigation.onCompleted.addListener(async details => {
     "002_YouTubeLiveOnBroadcaster": {
       expressions: [
         /https?:\/\/studio\.youtube.com\/live_chat(\?.*)/,
-        /https?:\/\/studio\.youtube\.com\/channel\/([^/]+)\/livestreaming.*/,
-        /https?:\/\/studio\.youtube\.com\/video\/([^/]+)\/livestreaming/
+        /https?:\/\/studio\.youtube.com\/channel\/([^/]+)\/livestreaming.*/,
+        /https?:\/\/studio\.youtube.com\/video\/([^/]+)\/livestreaming/
       ]
     },
     "003_TwitCasting": {
@@ -230,3 +260,17 @@ chrome.webNavigation.onCompleted.addListener(async details => {
 
   return filter;
 })());
+
+// 軽量な文字列ハッシュ関数（Service Worker環境対応）
+function simpleHash(str) {
+  let hash = 0;
+  if (str.length === 0) return hash.toString(16);
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 32bit整数に変換
+  }
+  
+  return Math.abs(hash).toString(16).substring(0, 8);
+}
