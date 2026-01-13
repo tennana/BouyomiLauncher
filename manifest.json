@@ -10,7 +10,8 @@
     "tabs",
     "webNavigation",
     "storage",
-    "tts"
+    "tts",
+    "alarms"
   ],
   "host_permissions": [
     "*://*.youtube.com/live_chat*",
