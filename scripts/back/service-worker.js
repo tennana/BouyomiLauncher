@@ -164,28 +164,28 @@ chrome.runtime.onConnect.addListener(async (port) => {
     port.onMessage.addListener(async (message) => {
       // Service Workerの状態を確認し、必要に応じて復帰処理を実行
       await ensureServiceWorkerActive();
-      
-      const {commandType, port: bouyomiPort, time, messageId, ...props} = message;
-      
-      // 重複メッセージチェック（永続的）
-      if (messageId && await isMessageProcessed(messageId)) {
-        console.log('Service Worker: 重複メッセージをスキップ', messageId);
-        return;
-      }
-      
-      if (messageId) {
-        await markMessageAsProcessed(messageId);
-      }
-      
+
+      const {commandType, port: bouyomiPort, time, ...props} = message;
       if (!bouyomiPort) {
         port.postMessage({ error: 'ポートが指定されていません' });
         return;
       }
-      
+
       // メッセージ内容に基づいてロック名を生成（同じ内容は同じロック名）
       const messageContent = JSON.stringify({ commandType, props });
       const lockName = `bouyomi-${commandType}-${simpleHash(messageContent)}`;
+
+      // 重複メッセージチェック（永続的）
+      if (lockName && await isMessageProcessed(lockName)) {
+        console.log('Service Worker: 重複メッセージをスキップ', lockName);
+        return;
+      }
       
+      if (lockName) {
+        await markMessageAsProcessed(lockName);
+      }
+
+
       // Web Locks APIを使用して排他制御（同じ内容のメッセージのみ排他）
       try {
         await navigator.locks.request(lockName, { mode: 'exclusive' }, async () => {

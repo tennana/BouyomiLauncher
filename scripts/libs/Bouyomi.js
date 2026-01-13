@@ -296,11 +296,9 @@ const Bouyomi = (() => {
 			}
 
 			try {
-				const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 				const message = Object.assign({ 
 					commandType, 
 					time: new Date().getTime(),
-					messageId
 				}, this.config, fields);
 				
 				this.port.postMessage(message);
