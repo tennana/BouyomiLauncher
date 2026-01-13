@@ -27,12 +27,12 @@ chrome.runtime.onMessage.addListener(({serviceId}, sender, resolve) => {
                 if (!["div"].includes(chat.tagName.toLowerCase()) || chat.nextSibling || !chat.parentElement) {
                     continue;
                 }
-                const scrollDiv = chat.parentElement.parentElement;
-                if (Math.abs(scrollDiv.scrollHeight - scrollDiv.clientHeight - scrollDiv.scrollTop) > 40 + chat.clientHeight) {
+                const authorDom = chat.querySelector(Ccfolia.SELECTORS.Chat_ViewerMessage);
+                const scrollDiv = document.querySelector(Ccfolia.SELECTORS.ChatListRoot);
+                if (Math.abs(scrollDiv.scrollHeight - scrollDiv.clientHeight - scrollDiv.scrollTop) > (40 + chat.clientHeight)) {
                     continue;
                 }
                 const message = (chat.querySelector(Ccfolia.SELECTORS.Chat_TextMessage) || {}).textContent;
-		            const authorDom = chat.querySelector(Ccfolia.SELECTORS.Chat_ViewerMessage);
                 const author = authorDom ? authorDom.firstChild.textContent : '';
                 if (!author || !message) return;
                 storage.get(STORAGE_KEYS.getServiceKey(serviceId)).then(value => {
