@@ -175,38 +175,36 @@ chrome.runtime.onConnect.addListener(async (port) => {
       const messageContent = JSON.stringify({ commandType, props });
       const lockName = `bouyomi-${commandType}-${simpleHash(messageContent)}`;
 
-      // 重複メッセージチェック（永続的）
-      if (lockName && await isMessageProcessed(lockName)) {
-        console.log('Service Worker: 重複メッセージをスキップ', lockName);
-        return;
-      }
-      
-      if (lockName) {
-        await markMessageAsProcessed(lockName);
-      }
-
-
       // Web Locks APIを使用して排他制御（同じ内容のメッセージのみ排他）
       try {
         await navigator.locks.request(lockName, { mode: 'exclusive' }, async () => {
+          // 重複メッセージチェック（永続的）
+          if (lockName && await isMessageProcessed(lockName)) {
+            console.log('Service Worker: 重複メッセージをスキップ', lockName);
+            return;
+          }
+
+          if (lockName) {
+            await markMessageAsProcessed(lockName);
+          }
+
           try {
             let response;
-            
+
             if (commandType === "BouyomiGetVoice") {
               response = await fetch("http://localhost:" + bouyomiPort + "/GetVoiceList");
             } else {
               const queryString = commandType !== "talk" ? '' : '?' + Object.entries(props)
-                  .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-                  .join('&');
+                .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+                .join('&');
               response = await fetch("http://localhost:" + bouyomiPort + "/" + commandType + queryString, {
                 method: "GET",
                 cache: "no-cache"
               });
             }
-            
+
             const result = await response.json();
             port.postMessage({ success: true, data: result });
-            
           } catch (error) {
             console.error('Service Worker: Bouyomi通信エラー', error);
             port.postMessage({ error: error.message });
